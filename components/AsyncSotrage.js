@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Alert, FlatList, Text, StyleSheet, Button } from 'react-native';
+import { Modal, View, Alert, FlatList, Text, StyleSheet, Button, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Product from './Produto';
 
 export default function StorageComponent() {
   const [records, setRecords] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
 
   const fetchRecords = async () => {
     try {
@@ -34,22 +36,11 @@ export default function StorageComponent() {
     }
   };
 
-  const confirmClearStorage = () => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      'Tem certeza de que deseja excluir todos os registros?',
-      [
-        { text: 'Cancelar', onPress: () => console.log('Cancelado'), style: 'cancel' },
-        { text: 'Excluir', onPress: () => clearStorage(), style: 'destructive' }
-      ],
-      { cancelable: false }
-    );
-  };
-
   const clearStorage = async () => {
     try {
       await AsyncStorage.removeItem('records');
       setRecords([]);
+      setConfirmModalVisible(false);
       Alert.alert('Sucesso', 'Todos os registros excluídos.');
     } catch (error) {
       console.error('Error clearing AsyncStorage:', error);
@@ -60,25 +51,43 @@ export default function StorageComponent() {
   return (
     <View style={styles.container}>
       <Product onSaveData={saveToAsyncStorage} />
-      <View style={styles.card}>
-        <Text style={styles.title}>Produtos Salvos:</Text>
-        {records.length === 0 ? (
-          <Text style={styles.noRecords}>Sem produtos cadastrados</Text>
-        ) : (
-          <FlatList
-            data={records}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.item}>
-                <Text>Quantidade: {item.quantity}</Text>
-                <Text>Produto: {item.productName}</Text>
-                <Text>Preço: {item.price}</Text>
-              </View>
-            )}
-          />
-        )}
-        <Button title="Excluir Registros" onPress={confirmClearStorage} color="orange" />
-      </View>
+      <Button title="Ver Produtos Salvos" onPress={() => setModalVisible(true)} color="blue" />
+      
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalView}>
+          <Text style={styles.modalTitle}>Produtos Salvos:</Text>
+          {records.length === 0 ? (
+            <Text style={styles.noRecords}>Sem produtos cadastrados</Text>
+          ) : (
+            <FlatList
+              data={records}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.item}>
+                  <Text>Quantidade: {item.quantity}</Text>
+                  <Text>Produto: {item.productName}</Text>
+                  <Text>Preço: {item.price}</Text>
+                </View>
+              )}
+            />
+          )}
+          <View style={styles.modalButtons}>
+            <Button title="Fechar" onPress={() => setModalVisible(false)} color="red" />
+            <Button title="Excluir Registros" onPress={() => setConfirmModalVisible(true)} color="orange" />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={confirmModalVisible} animationType="fade" transparent>
+        <View style={styles.confirmModalView}>
+          <Text style={styles.modalTitle}>Confirmar Exclusão</Text>
+          <Text>Tem certeza de que deseja excluir todos os registros?</Text>
+          <View style={styles.modalButtons}>
+            <Button title="Sim" onPress={clearStorage} color="red" />
+            <Button title="Não" onPress={() => setConfirmModalVisible(false)} color="gray" />            
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -89,23 +98,37 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
-  card: {
-    marginTop: 20,
-    padding: 15,
-    width: '90%',
+  modalView: {
+    flex: 1,
+    backgroundColor: 'white',
+    padding: 20,
+    margin: 20,
     borderRadius: 10,
-    backgroundColor: '#f8f9fa',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  title: {
-    fontSize: 18,
+  confirmModalView: {
+    backgroundColor: 'white',
+    padding: 20,
+    margin: 40,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-    textAlign: 'center',
   },
   item: {
     padding: 10,
@@ -115,5 +138,11 @@ const styles = StyleSheet.create({
   noRecords: {
     textAlign: 'center',
     color: 'gray',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 10,
   },
 });
